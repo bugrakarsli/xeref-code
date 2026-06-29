@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.0] — 2026-06-30
+
+### Added
+- Model selector in Agent Panel (plan-gated: Free / Pro / Ultra)
+- "Xeref: Send Selection to Agent" now prefills the chat input with the selected code block and file path
+- `autoApplyEdits` setting: when enabled, `propose_edit` calls apply without manual approval
+
+### Changed
+- **Enter** sends the message; **Shift+Enter** inserts a new line (matches xeref.ai web app)
+
 ## [0.1.0] — 2026-06-30
 
 ### Added

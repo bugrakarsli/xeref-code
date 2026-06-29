@@ -4,7 +4,7 @@
   "description": "Xeref's IDE-native coding agent — chat, sessions, and approval-gated edits in your editor.",
   "publisher": "bugrakarsli",
   "private": false,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "icon": "media/icon.png",
   "repository": {
