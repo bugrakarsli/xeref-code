@@ -198,8 +198,8 @@ export function App() {
       <textarea
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSend(); }}
-        placeholder="Message Xeref… (Ctrl+Enter to send)"
+        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+        placeholder="Message Xeref… (Shift+Enter for new line)"
         rows={3}
         disabled={busy}
       />
