@@ -1,0 +1,104 @@
+/* Map to the host's VS Code theme variables instead of hardcoding colors,
+   so the webview matches the user's IDE theme automatically. */
+body {
+  margin: 0;
+  padding: 12px;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-foreground);
+  background-color: var(--vscode-editor-background);
+}
+
+.xeref-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.xeref-placeholder {
+  margin-top: 16px;
+  opacity: 0.7;
+}
+
+button.xeref-connect {
+  margin-top: 8px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 4px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+button.xeref-connect:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+button.xeref-connect:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.xeref-session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  gap: 8px;
+}
+
+.xeref-transcript {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.xeref-transcript p {
+  margin: 4px 0;
+  word-break: break-word;
+}
+
+.xeref-error {
+  color: var(--vscode-errorForeground);
+  font-size: 12px;
+}
+
+.xeref-tool-card {
+  margin-top: 12px;
+  padding: 8px;
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 2px;
+  font-size: 13px;
+}
+
+.xeref-tool-card pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.xeref-tool-actions {
+  display: flex;
+  gap: 8px;
+}
+
+button.xeref-deny {
+  background: transparent;
+  border: 1px solid var(--vscode-button-background);
+  color: var(--vscode-foreground);
+}
+
+textarea {
+  width: 100%;
+  margin-top: 8px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  resize: vertical;
+  box-sizing: border-box;
+}

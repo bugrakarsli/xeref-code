@@ -1,0 +1,107 @@
+{
+  "name": "xeref-code",
+  "displayName": "Xeref Code",
+  "description": "Xeref's IDE-native coding agent — chat, sessions, and approval-gated edits in your editor.",
+  "publisher": "bugrakarsli",
+  "private": false,
+  "version": "0.1.0",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bugrakarsli/xeref-code"
+  },
+  "homepage": "https://xeref.ai",
+  "bugs": {
+    "url": "https://github.com/bugrakarsli/xeref-code/issues"
+  },
+  "keywords": ["ai", "agent", "xeref", "coding assistant", "chat", "claude", "openrouter"],
+  "galleryBanner": {
+    "color": "#0F0F0F",
+    "theme": "dark"
+  },
+  "qna": "https://xeref.ai/docs",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": ["AI", "Programming Languages", "Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "package": "vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@xeref-code/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.9",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.3.2",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.2"
+  },
+  "contributes": {
+    "commands": [
+      { "command": "xeref.openAgentPanel", "title": "Xeref: Open Agent Panel" },
+      { "command": "xeref.openAgentManager", "title": "Xeref: Open Agent Manager" },
+      { "command": "xeref.newSession", "title": "Xeref: New Session", "icon": "$(add)" },
+      { "command": "xeref.signIn", "title": "Xeref: Connect Account" },
+      { "command": "xeref.signOut", "title": "Xeref: Disconnect" },
+      { "command": "xeref.sendSelection", "title": "Xeref: Send Selection to Agent" },
+      { "command": "xeref.sessions.refresh", "title": "Xeref: Refresh Sessions", "icon": "$(refresh)" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "xeref", "title": "Xeref", "icon": "media/xeref.svg" }
+      ]
+    },
+    "views": {
+      "xeref": [
+        { "id": "xeref.agentPanel", "name": "Agent Panel", "type": "webview" },
+        { "id": "xeref.sessions", "name": "Sessions", "type": "tree" },
+        { "id": "xeref.agentManager", "name": "Agent Manager", "type": "webview", "visibility": "collapsed" }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        { "command": "xeref.newSession", "when": "view == xeref.sessions", "group": "navigation" },
+        { "command": "xeref.sessions.refresh", "when": "view == xeref.sessions", "group": "navigation" }
+      ],
+      "editor/context": [
+        { "command": "xeref.sendSelection", "when": "editorHasSelection", "group": "xeref" }
+      ]
+    },
+    "keybindings": [
+      { "command": "xeref.openAgentManager", "key": "ctrl+e", "mac": "cmd+e", "when": "!terminalFocus" },
+      { "command": "xeref.openAgentPanel", "key": "ctrl+l", "mac": "cmd+l", "when": "!terminalFocus" }
+    ],
+    "configuration": {
+      "title": "Xeref Code",
+      "properties": {
+        "xeref.endpoint": {
+          "type": "string",
+          "default": "https://xeref.ai",
+          "description": "Xeref API base URL."
+        },
+        "xeref.defaultModel": {
+          "type": "string",
+          "default": "xeref-free",
+          "description": "Default model id (must be allowed by your plan)."
+        },
+        "xeref.autoApplyEdits": {
+          "type": "boolean",
+          "default": false,
+          "description": "Apply agent edits without per-diff approval (not recommended)."
+        },
+        "xeref.runtime.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the local runtime bridge for file edits and commands."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "xeref-code-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "watch": "pnpm -r run watch",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
