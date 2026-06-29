@@ -103,7 +103,7 @@ export function App() {
     if (!text || busy) return;
     setError(undefined);
     setBusy(true);
-    postToHost({ type: 'chat.send', text });
+    postToHost({ type: 'chat.send', text, model });
     setInput('');
   }
 
@@ -185,10 +185,21 @@ export function App() {
 
       {error && <p className="xeref-error">{error}</p>}
 
+      <select
+        value={model}
+        onChange={(e) => setModel(e.target.value as ModelId)}
+        disabled={busy}
+      >
+        {MODELS.filter((m) => PLAN_RANK[m.minPlan] <= PLAN_RANK[auth?.plan ?? 'free']).map((m) => (
+          <option key={m.id} value={m.id}>{m.label}</option>
+        ))}
+      </select>
+
       <textarea
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder="Message Xeref…"
+        onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSend(); }}
+        placeholder="Message Xeref… (Ctrl+Enter to send)"
         rows={3}
         disabled={busy}
       />
