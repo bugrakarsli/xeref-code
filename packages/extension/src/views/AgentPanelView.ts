@@ -7,6 +7,13 @@ import { RuntimeBridge } from '../runtime/RuntimeBridge';
 import type { DiffContentProvider } from '../runtime/DiffContentProvider';
 
 /**
+ * Tools the extension itself executes and asks the user to approve. Any other tool name in the
+ * stream (list_tasks, web_search, …) is executed by the Xeref server before the result reaches
+ * us, so it must not surface an approval card the extension can't act on.
+ */
+const CLIENT_TOOLS: ReadonlySet<string> = new Set(['read_file', 'propose_edit']);
+
+/**
  * Webview provider for the main chat surface ("AgentPanel", Ctrl+L).
  *
  * Deliberately isolated from AgentManagerView — this panel only ever streams
@@ -313,6 +320,7 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
             this.post({ type: 'stream.delta', text: event.delta });
             break;
           case 'tool-call': {
+            if (!CLIENT_TOOLS.has(event.toolName)) break;
             this.pendingToolCalls.set(event.toolCallId, { toolName: event.toolName, input: event.input });
             const autoApply = vscode.workspace.getConfiguration('xeref').get<boolean>('autoApplyEdits', false);
             if (event.toolName === 'propose_edit' && autoApply) {
