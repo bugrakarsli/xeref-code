@@ -1,0 +1,725 @@
+/* Shared component styles for both webviews. Colors come from VS Code theme variables
+   (see theme.css) so dark, light and high-contrast themes all work. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.x-muted {
+  color: var(--x-muted);
+}
+
+.x-small {
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.x-error {
+  color: var(--vscode-errorForeground);
+  font-size: 12px;
+  margin: 6px 0;
+  word-break: break-word;
+}
+
+.x-spacer {
+  flex: 1;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+
+.x-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--vscode-button-secondaryBackground, var(--x-border));
+  background: var(--vscode-button-secondaryBackground, transparent);
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  cursor: pointer;
+}
+
+.x-btn:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground, var(--vscode-toolbar-hoverBackground));
+}
+
+.x-btn-primary {
+  background: var(--x-accent);
+  border-color: var(--x-accent);
+  color: var(--x-accent-ink);
+  font-weight: 600;
+}
+
+.x-btn-primary:hover:not(:disabled) {
+  background: var(--x-accent);
+  filter: brightness(1.08);
+}
+
+.x-btn-small {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.x-btn:disabled,
+.x-send:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.x-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--x-muted);
+  cursor: pointer;
+}
+
+.x-icon-btn:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.x-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 12px;
+}
+
+.x-link:hover {
+  color: var(--vscode-textLink-activeForeground);
+}
+
+/* ── Sections ────────────────────────────────────────────── */
+
+.x-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.x-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.x-section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.x-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--x-muted);
+}
+
+.x-section-label-static {
+  padding-left: 2px;
+}
+
+.x-section-body {
+  margin-top: 8px;
+}
+
+.x-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+}
+
+.x-row-label {
+  color: var(--x-muted);
+  flex-shrink: 0;
+}
+
+.x-row-value {
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.x-badge {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--x-border);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.x-badge-pro,
+.x-badge-ultra {
+  background: var(--x-accent);
+  border-color: var(--x-accent);
+  color: var(--x-accent-ink);
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+
+.x-card {
+  padding: 10px;
+  border: 1px solid var(--x-border);
+  border-radius: var(--x-radius);
+  background: var(--x-surface);
+}
+
+.x-card p {
+  margin-bottom: 8px;
+}
+
+.x-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.x-card-accent {
+  border-left: 3px solid var(--x-accent);
+}
+
+.x-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.x-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.x-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.x-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.x-checklist,
+.x-bullets,
+.x-session-list,
+.x-chip-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.x-bullets {
+  list-style: disc;
+  padding-left: 18px;
+}
+
+.x-bullets li {
+  margin: 3px 0;
+}
+
+.x-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.x-check-row.is-next .x-check-text {
+  font-weight: 600;
+}
+
+.x-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border: 1px solid var(--x-border);
+  border-radius: 4px;
+}
+
+.x-check.is-done {
+  background: var(--x-accent);
+  border-color: var(--x-accent);
+  color: var(--x-accent-ink);
+}
+
+.x-check-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Sessions ────────────────────────────────────────────── */
+
+.x-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border: 1px solid var(--vscode-input-border, var(--x-border));
+  border-radius: 4px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+}
+
+.x-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.x-session-list {
+  margin-top: 8px;
+}
+
+.x-session {
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+}
+
+.x-session:hover,
+.x-session:focus-within {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.x-session.is-active {
+  background: var(--vscode-list-inactiveSelectionBackground);
+}
+
+.x-session-open {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 5px 6px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.x-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--x-muted);
+}
+
+.x-session.is-active .x-dot {
+  background: var(--x-accent);
+  border-color: var(--x-accent);
+}
+
+.x-session-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.x-session-time {
+  color: var(--x-muted);
+  font-size: 11px;
+}
+
+.x-session-delete {
+  opacity: 0;
+}
+
+.x-session:hover .x-session-delete,
+.x-session:focus-within .x-session-delete {
+  opacity: 1;
+}
+
+/* ── Dialog (Account & Usage popup) ──────────────────────── */
+
+.x-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.x-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(400px, 100%);
+  max-height: 100%;
+  border: 1px solid var(--x-border);
+  border-radius: var(--x-radius);
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.x-dialog:focus {
+  outline: none;
+}
+
+.x-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--x-border);
+}
+
+.x-dialog-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.x-dialog-body {
+  padding: 10px 12px;
+  overflow-y: auto;
+}
+
+.x-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--x-border);
+}
+
+.x-dialog-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.x-h3 {
+  margin: 14px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--x-muted);
+}
+
+.x-h3:first-child {
+  margin-top: 0;
+}
+
+.x-notice {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--x-border);
+  border-left: 3px solid var(--x-accent);
+  border-radius: 4px;
+}
+
+.x-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.x-chip-static {
+  padding: 1px 8px;
+  border: 1px solid var(--x-border);
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+/* ── Agent Panel (chat) ──────────────────────────────────── */
+
+.x-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: calc(100vh - 20px);
+}
+
+.x-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 0 2px;
+}
+
+.x-brand-mark {
+  display: inline-flex;
+  color: var(--x-accent);
+}
+
+.x-brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.x-panel-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.x-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--x-muted);
+}
+
+.x-status.is-connected svg {
+  color: var(--vscode-testing-iconPassed, var(--x-accent));
+}
+
+.x-session-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.x-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.x-msg-role {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--x-muted);
+}
+
+.x-msg-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.x-msg-user .x-msg-text {
+  padding: 8px 10px;
+  border: 1px solid var(--x-border);
+  border-radius: var(--x-radius);
+  background: var(--x-surface);
+}
+
+/* ── Composer ────────────────────────────────────────────── */
+
+.x-composer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--vscode-input-border, var(--x-border));
+  border-radius: var(--x-radius);
+  background: var(--vscode-input-background);
+}
+
+.x-composer:focus-within {
+  border-color: var(--vscode-focusBorder);
+}
+
+.x-composer-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--vscode-input-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+.x-composer-input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.x-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.x-menu-anchor {
+  position: relative;
+}
+
+.x-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--x-border);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.x-chip:hover:not(:disabled) {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.x-chip-warn {
+  border-color: var(--vscode-editorWarning-foreground, var(--x-border));
+  color: var(--vscode-editorWarning-foreground, inherit);
+}
+
+.x-chip-file {
+  cursor: default;
+}
+
+.x-chip-text {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.x-chip-x {
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--x-muted);
+  cursor: pointer;
+}
+
+.x-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 5;
+  min-width: 200px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--x-border);
+  border-radius: var(--x-radius);
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.x-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.x-menu-item:hover,
+.x-menu-item:focus-visible {
+  background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground));
+  color: var(--vscode-menu-selectionForeground, inherit);
+}
+
+.x-menu-check {
+  display: inline-flex;
+  width: 14px;
+  justify-content: center;
+}
+
+.x-menu-upsell {
+  margin-top: 2px;
+  border-top: 1px solid var(--x-border);
+  border-radius: 0 0 4px 4px;
+  color: var(--x-muted);
+}
+
+.x-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: var(--x-accent);
+  color: var(--x-accent-ink);
+  cursor: pointer;
+}
+
+.x-send:hover:not(:disabled) {
+  filter: brightness(1.08);
+}

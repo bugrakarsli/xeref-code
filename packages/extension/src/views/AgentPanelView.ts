@@ -1,10 +1,21 @@
 import * as vscode from 'vscode';
 import * as crypto from 'node:crypto';
 import type { AuthManager } from '../auth/AuthManager';
-import type { XerefClient } from '../api/XerefClient';
+import { XerefApiError, type XerefClient } from '../api/XerefClient';
 import type { ChatMessage, CodeSession, HostToWebview, ModelId, WebviewToHost } from '../shared/messages';
+import type { AccountService } from '../state/AccountService';
+import type { OnboardingStore } from '../state/OnboardingStore';
+import type { SessionStore } from '../state/SessionStore';
+import { currentAuthState } from '../state/authState';
 import { RuntimeBridge } from '../runtime/RuntimeBridge';
 import type { DiffContentProvider } from '../runtime/DiffContentProvider';
+
+/**
+ * Tools the extension itself executes and asks the user to approve. Any other tool name in the
+ * stream (list_tasks, web_search, …) is executed by the Xeref server before the result reaches
+ * us, so it must not surface an approval card the extension can't act on.
+ */
+const CLIENT_TOOLS: ReadonlySet<string> = new Set(['read_file', 'propose_edit']);
 
 /**
  * Webview provider for the main chat surface ("AgentPanel", Ctrl+L).
@@ -37,8 +48,26 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
     private readonly auth: AuthManager,
     private readonly client: XerefClient,
     private readonly diffContentProvider: DiffContentProvider,
-    private readonly onSessionCreated: (session: CodeSession) => void
-  ) {}
+    private readonly accounts: AccountService,
+    private readonly onboarding: OnboardingStore,
+    private readonly sessions: SessionStore
+  ) {
+    // Registered once for the provider's lifetime; post() is a no-op while no view is resolved.
+    this.auth.onDidChangeAuth(() => void this.pushAuth());
+    this.accounts.onDidChange((snapshot) => {
+      if (snapshot.status === 'ready') {
+        this.post({ type: 'account.data', account: snapshot.account, fetchedAt: snapshot.fetchedAt });
+      }
+      void this.pushAuth();
+      this.pushConfig();
+    });
+    vscode.window.onDidChangeActiveTextEditor(() => this.pushEditorContext());
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('xeref.autoApplyEdits') || e.affectsConfiguration('xeref.defaultModel')) {
+        this.pushConfig();
+      }
+    });
+  }
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
     this.view = webviewView;
@@ -55,9 +84,6 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
       void this.handleMessage(message);
     });
 
-    this.auth.onDidChangeAuth((state) => {
-      this.post({ type: 'auth.state', state });
-    });
   }
 
   reveal(): void {
@@ -66,6 +92,7 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
 
   /** Prefills the chat input with the selected text and file path, then reveals the panel. */
   sendSelection(text: string, filePath: string): void {
+    void this.onboarding.complete('sendSelection');
     this.reveal();
     this.post({ type: 'input.prefill', text: `\`\`\`// ${filePath}\n${text}\n\`\`\`\n` });
   }
@@ -81,6 +108,7 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
     }
     this.currentSession = session;
     this.currentModel = undefined;
+    this.sessions.setActive(session.id);
     this.post({ type: 'session.loaded', session, messages: this.messages });
   }
 
@@ -95,7 +123,7 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
       this.currentModel = undefined;
       this.reveal();
       this.post({ type: 'session.loaded', session, messages: [] });
-      this.onSessionCreated(session);
+      this.sessions.add(session);
     } catch (err) {
       this.postError(err);
     }
@@ -107,13 +135,42 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
 
   private postError(err: unknown): void {
     const message = err instanceof Error ? err.message : 'Unexpected error';
-    this.post({ type: 'chat.error', message });
+    this.post({ type: 'chat.error', message, code: err instanceof XerefApiError ? err.code : undefined });
+  }
+
+  private async pushAuth(): Promise<void> {
+    this.post({ type: 'auth.state', state: await currentAuthState(this.auth, this.accounts) });
+  }
+
+  private pushConfig(): void {
+    const config = vscode.workspace.getConfiguration('xeref');
+    this.post({
+      type: 'config.state',
+      autoApplyEdits: config.get<boolean>('autoApplyEdits', false),
+      defaultModel: config.get<string>('defaultModel', 'xeref-free'),
+    });
+  }
+
+  /** The active editor's workspace-relative path, for the "active file" chip. Non-file tabs clear it. */
+  private pushEditorContext(): void {
+    const fileName = this.activeFilePath() ?? null;
+    this.post({ type: 'editor.context', fileName });
   }
 
   private async handleMessage(message: WebviewToHost): Promise<void> {
     switch (message.type) {
       case 'webview.ready':
-        this.post({ type: 'auth.state', state: { connected: await this.auth.isConnected() } });
+        await this.pushAuth();
+        this.pushConfig();
+        this.pushEditorContext();
+        if (this.accounts.current.status === 'ready') {
+          this.post({
+            type: 'account.data',
+            account: this.accounts.current.account,
+            fetchedAt: this.accounts.current.fetchedAt,
+          });
+        }
+        void this.accounts.refresh();
         if (this.currentSession) {
           this.post({ type: 'session.loaded', session: this.currentSession, messages: this.messages });
         }
@@ -122,13 +179,26 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
         await this.newSession();
         return;
       case 'chat.send':
-        await this.sendChat(message.text, message.model);
+        await this.sendChat(message.text, message.model, message.includeActiveFile === true);
         return;
       case 'tool.approve':
+        this.noteEditReviewed(message.toolCallId);
         await this.approveToolCall(message.toolCallId);
         return;
       case 'tool.deny':
+        this.noteEditReviewed(message.toolCallId);
         await this.denyToolCall(message.toolCallId);
+        return;
+      case 'config.setAutoApply':
+        await vscode.workspace
+          .getConfiguration('xeref')
+          .update('autoApplyEdits', message.value === true, vscode.ConfigurationTarget.Global);
+        return;
+      case 'ui.openExternal':
+        await vscode.commands.executeCommand('xeref.openExternal', message.path);
+        return;
+      case 'command.run':
+        if (message.id === 'xeref.signIn') await vscode.commands.executeCommand(message.id);
         return;
       default:
         return;
@@ -279,11 +349,26 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
     }
   }
 
-  private async sendChat(text: string, model?: ModelId): Promise<void> {
+  /** Counts a reviewed propose_edit toward the Learn checklist (read_file approvals do not count). */
+  private noteEditReviewed(toolCallId: string): void {
+    if (this.pendingToolCalls.get(toolCallId)?.toolName === 'propose_edit') {
+      void this.onboarding.complete('reviewEdit');
+    }
+  }
+
+  private async sendChat(text: string, model?: ModelId, includeActiveFile = false): Promise<void> {
     if (!this.currentSession) {
       await this.newSession();
       if (!this.currentSession) return; // creation failed; error already posted
     }
+
+    void this.onboarding.complete('firstChat');
+    const defaultModel = vscode.workspace.getConfiguration('xeref').get<string>('defaultModel', 'xeref-free');
+    if (model && model !== defaultModel) void this.onboarding.complete('tryModel');
+
+    // Only the path travels with the message; the agent reads contents through approved tools.
+    const activeFile = includeActiveFile ? this.activeFilePath() : undefined;
+    if (activeFile) text = `[Active file: ${activeFile}]\n${text}`;
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
@@ -313,6 +398,7 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
             this.post({ type: 'stream.delta', text: event.delta });
             break;
           case 'tool-call': {
+            if (!CLIENT_TOOLS.has(event.toolName)) break;
             this.pendingToolCalls.set(event.toolCallId, { toolName: event.toolName, input: event.input });
             const autoApply = vscode.workspace.getConfiguration('xeref').get<boolean>('autoApplyEdits', false);
             if (event.toolName === 'propose_edit' && autoApply) {
@@ -348,6 +434,11 @@ export class AgentPanelView implements vscode.WebviewViewProvider {
     } catch (err) {
       this.postError(err);
     }
+  }
+
+  private activeFilePath(): string | undefined {
+    const doc = vscode.window.activeTextEditor?.document;
+    return doc && doc.uri.scheme === 'file' ? vscode.workspace.asRelativePath(doc.uri) : undefined;
   }
 
   private renderHtml(webview: vscode.Webview): string {

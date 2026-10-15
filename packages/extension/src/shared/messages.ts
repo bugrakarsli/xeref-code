@@ -11,6 +11,10 @@ export type {
   ModelId,
   DiffProposal,
   AuthState,
+  Plan,
+  AccountInfo,
+  MilestoneId,
+  OnboardingState,
   HostToWebview,
   WebviewToHost,
 } from '@xeref-code/shared-types';

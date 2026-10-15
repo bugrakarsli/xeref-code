@@ -23,13 +23,20 @@ pnpm build          # builds shared-types, webview bundles, and the extension
 Then open `packages/extension` in VS Code/Antigravity and press F5 to launch
 the Extension Development Host (the `xeref-code: build` task runs first).
 
-## Status (Phase 1 — Shell)
+## Status (v0.3)
 
-- Xeref activity-bar container, AgentPanel + Agent Manager webviews, Sessions
-  tree (static), `Ctrl+L`/`Ctrl+E` keybindings, and `mcp_token` auth via
-  `SecretStorage` are wired up.
-- No backend calls yet — streaming chat (`/api/code/chat`, bearer-guarded)
-  lands in Phase 2 on the Xeref Next.js app side first.
+- **Agent Panel** (`Ctrl+L`): streaming chat against `/api/code/chat`, plan-gated model
+  chip, edit-mode chip (ask before edits / auto-apply), active-file chip, approval-gated
+  edits with a native diff.
+- **Account & Sessions** (`Ctrl+E`): Account & usage summary with a **View details** popup
+  (also opened from the status bar), a Learn checklist, and the session list with search
+  and delete.
+- Auth is the `mcp_token` pasted from Xeref → Settings → MCP Server Token, stored in
+  `SecretStorage` and verified against `GET /api/code/account` before it is saved.
+- Needs a Xeref server that serves `/api/code/account`. Against an older server the
+  extension still works; the account section shows "does not provide account details yet".
+- `/api/code/*` chat and sessions are Ultra-only (`xeref_code`); Free and Pro accounts see
+  their plan and an upgrade card instead of an error.
 
 ## Known overrides to be aware of
 
