@@ -4,7 +4,7 @@
   "description": "Xeref's IDE-native coding agent — chat, sessions, and approval-gated edits in your editor.",
   "publisher": "bugrakarsli",
   "private": false,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
   "icon": "media/icon.png",
   "repository": {
@@ -46,7 +46,8 @@
   "contributes": {
     "commands": [
       { "command": "xeref.openAgentPanel", "title": "Xeref: Open Agent Panel" },
-      { "command": "xeref.openAgentManager", "title": "Xeref: Open Agent Manager" },
+      { "command": "xeref.openAgentManager", "title": "Xeref: Open Account & Sessions" },
+      { "command": "xeref.openAccount", "title": "Xeref: Account & Usage" },
       { "command": "xeref.newSession", "title": "Xeref: New Session", "icon": "$(add)" },
       { "command": "xeref.signIn", "title": "Xeref: Connect Account" },
       { "command": "xeref.signOut", "title": "Xeref: Disconnect" },
@@ -61,14 +62,13 @@
     "views": {
       "xeref": [
         { "id": "xeref.agentPanel", "name": "Agent Panel", "type": "webview" },
-        { "id": "xeref.sessions", "name": "Sessions", "type": "tree" },
-        { "id": "xeref.agentManager", "name": "Agent Manager", "type": "webview", "visibility": "collapsed" }
+        { "id": "xeref.agentManager", "name": "Account & Sessions", "type": "webview" }
       ]
     },
     "menus": {
       "view/title": [
-        { "command": "xeref.newSession", "when": "view == xeref.sessions", "group": "navigation" },
-        { "command": "xeref.sessions.refresh", "when": "view == xeref.sessions", "group": "navigation" }
+        { "command": "xeref.newSession", "when": "view == xeref.agentManager", "group": "navigation" },
+        { "command": "xeref.sessions.refresh", "when": "view == xeref.agentManager", "group": "navigation" }
       ],
       "editor/context": [
         { "command": "xeref.sendSelection", "when": "editorHasSelection", "group": "xeref" }

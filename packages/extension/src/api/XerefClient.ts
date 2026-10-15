@@ -1,10 +1,22 @@
-import type { ChatMessage, CodeSession, ModelId } from '../shared/messages';
+import type { AccountInfo, ChatMessage, CodeSession, ModelId } from '../shared/messages';
 import { parseUIMessageStream, type StreamEvent } from './uiMessageStream';
 
 export interface XerefClientOptions {
   /** e.g. https://xeref.ai — from the `xeref.endpoint` setting. */
   endpoint: string;
   getToken: () => Promise<string | undefined>;
+}
+
+/** Error from a non-2xx Xeref API response: `status` is the HTTP code, `code` the body's machine code. */
+export class XerefApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string
+  ) {
+    super(message);
+    this.name = 'XerefApiError';
+  }
 }
 
 /** Wire shape of a code_sessions row, as returned by /api/code/sessions. */
@@ -38,8 +50,8 @@ function toCodeSession(raw: RawCodeSession): CodeSession {
 export class XerefClient {
   constructor(private readonly options: XerefClientOptions) {}
 
-  private async request(path: string, init: RequestInit = {}): Promise<Response> {
-    const token = await this.options.getToken();
+  private async request(path: string, init: RequestInit = {}, tokenOverride?: string): Promise<Response> {
+    const token = tokenOverride ?? (await this.options.getToken());
     if (!token) {
       throw new Error('Xeref Code: not connected. Run "Xeref: Connect Account" first.');
     }
@@ -55,12 +67,19 @@ export class XerefClient {
 
     if (!res.ok) {
       const body = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
-      const error = new Error(body.error ?? `Xeref API error: ${res.status}`);
-      (error as Error & { code?: string }).code = body.code;
-      throw error;
+      throw new XerefApiError(body.error ?? `Xeref API error: ${res.status}`, res.status, body.code);
     }
 
     return res;
+  }
+
+  /**
+   * Who this token belongs to and what its plan allows. `tokenOverride` lets sign-in verify a
+   * pasted token before it is stored. Not plan-gated server-side, so Free/Pro tokens succeed.
+   */
+  async getAccount(tokenOverride?: string): Promise<AccountInfo> {
+    const res = await this.request('/api/code/account', {}, tokenOverride);
+    return (await res.json()) as AccountInfo;
   }
 
   async listSessions(): Promise<CodeSession[]> {

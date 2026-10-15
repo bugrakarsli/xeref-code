@@ -1,17 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { AuthState, ChatMessage, CodeSession, ModelId } from '@xeref-code/shared-types';
 import { onHostMessage, postToHost } from '../lib/vscodeApi';
+import { pickModel } from '../lib/format';
+import { useAccount } from '../lib/useAccount';
 import { ConnectionStatus } from '../components/ConnectionStatus';
-
-const MODELS: { id: ModelId; label: string; minPlan: 'free' | 'pro' | 'ultra' }[] = [
-  { id: 'xeref-free', label: 'Xeref Free', minPlan: 'free' },
-  { id: 'haiku',      label: 'Claude Haiku',   minPlan: 'pro' },
-  { id: 'sonnet',     label: 'Claude Sonnet',   minPlan: 'pro' },
-  { id: 'opus',       label: 'Claude Opus',     minPlan: 'ultra' },
-  { id: 'best',       label: 'Best (auto)',      minPlan: 'ultra' },
-];
-
-const PLAN_RANK: Record<string, number> = { free: 0, pro: 1, ultra: 2 };
+import { Composer } from '../components/Composer';
+import { Icon, XerefMark } from '../components/Icon';
 
 interface PendingToolCall {
   toolCallId: string;
@@ -25,32 +19,56 @@ interface ToolOutcome {
   error?: string;
 }
 
+interface ChatError {
+  message: string;
+  code?: string;
+}
+
+/** Used until the account loads (or on servers without /api/code/account): the free model is always allowed. */
+const FALLBACK_MODELS: readonly ModelId[] = ['xeref-free'];
+
 /**
  * Main chat surface (Ctrl+L). Wired to XerefClient via the host (see
  * AgentPanelView) — this component only ever sends/receives postMessage
  * envelopes, never the network or the token directly.
  *
- * `streamingText` accumulates `stream.delta` chunks, which the host now
- * derives from parsed text-delta protocol events (see uiMessageStream.ts) —
- * this is real assistant text, not raw protocol JSON.
+ * `streamingText` accumulates `stream.delta` chunks, which the host derives from parsed
+ * text-delta protocol events (see uiMessageStream.ts) — real assistant text, not raw protocol JSON.
  */
 export function App() {
   const [auth, setAuth] = useState<AuthState>();
   const [session, setSession] = useState<CodeSession>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingText, setStreamingText] = useState('');
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<ChatError>();
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState('');
   const [model, setModel] = useState<ModelId>('xeref-free');
+  const [defaultModel, setDefaultModel] = useState<ModelId>('xeref-free');
+  const [autoApply, setAutoApply] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [includeFile, setIncludeFile] = useState(true);
   const [pendingTool, setPendingTool] = useState<PendingToolCall>();
   const [toolOutcome, setToolOutcome] = useState<ToolOutcome>();
+  const { state: account } = useAccount();
+  const endRef = useRef<HTMLDivElement>(null);
+  const userPickedModel = useRef(false);
+
+  const allowedModels = account.account?.models.length ? account.account.models : FALLBACK_MODELS;
 
   useEffect(() => {
     const off = onHostMessage((message) => {
       switch (message.type) {
         case 'auth.state':
           setAuth(message.state);
+          return;
+        case 'config.state':
+          setAutoApply(message.autoApplyEdits);
+          setDefaultModel(message.defaultModel);
+          return;
+        case 'editor.context':
+          setFileName(message.fileName);
+          setIncludeFile(true); // a different file starts included again
           return;
         case 'session.loaded':
           setSession(message.session);
@@ -70,7 +88,7 @@ export function App() {
           return;
         case 'chat.error':
           setBusy(false);
-          setError(message.message);
+          setError({ message: message.message, code: message.code });
           return;
         case 'tool.requested':
           setToolOutcome(undefined);
@@ -98,13 +116,29 @@ export function App() {
     return off;
   }, []);
 
+  // Until the user picks a model, follow the configured default (once the plan's list is known).
+  // After they pick one, keep it unless the plan no longer allows it.
+  useEffect(() => {
+    setModel((current) =>
+      userPickedModel.current && allowedModels.includes(current) ? current : pickModel(allowedModels, defaultModel)
+    );
+  }, [allowedModels, defaultModel]);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'end' });
+  }, [messages, streamingText, pendingTool, toolOutcome, error]);
+
   function handleSend() {
     const text = input.trim();
     if (!text || busy) return;
     setError(undefined);
     setBusy(true);
-    postToHost({ type: 'chat.send', text, model });
+    postToHost({ type: 'chat.send', text, model, includeActiveFile: Boolean(fileName) && includeFile });
     setInput('');
+  }
+
+  function openSite(path: string) {
+    postToHost({ type: 'ui.openExternal', path });
   }
 
   function renderPart(part: ChatMessage['parts'][number]): string {
@@ -116,37 +150,55 @@ export function App() {
     return `[called ${part.toolName}]`;
   }
 
-  return (
-    <div>
-      <h3>Xeref Agent Panel</h3>
-      <ConnectionStatus state={auth} />
+  const planBlocked = error?.code === 'PLAN_LIMIT';
 
-      <div className="xeref-session-row">
-        <span>{session ? session.title : 'No session open'}</span>
-        <button className="xeref-connect" onClick={() => postToHost({ type: 'session.new' })}>
-          New session
+  return (
+    <div className="x-panel">
+      <header className="x-brand">
+        <span className="x-brand-mark">
+          <XerefMark size={18} />
+        </span>
+        <span className="x-brand-name">Xeref Code</span>
+      </header>
+
+      <div className="x-panel-meta">
+        <ConnectionStatus state={auth} />
+        <button className="x-btn x-btn-small" onClick={() => postToHost({ type: 'session.new' })} disabled={!auth?.connected}>
+          <Icon name="plus" /> New session
         </button>
       </div>
+      {session && <div className="x-session-name">{session.title}</div>}
 
-      <div className="xeref-transcript">
+      {auth && !auth.connected && (
+        <div className="x-card">
+          <p className="x-muted">Connect your Xeref account to start.</p>
+          <button className="x-btn x-btn-primary" onClick={() => postToHost({ type: 'command.run', id: 'xeref.signIn' })}>
+            <Icon name="plug" /> Connect account
+          </button>
+        </div>
+      )}
+
+      <div className="x-transcript" aria-live="polite">
         {messages.map((m) => (
-          <p key={m.id}>
-            <strong>{m.role}:</strong> {m.parts.map(renderPart).join(' ')}
-          </p>
+          <div key={m.id} className={`x-msg x-msg-${m.role}`}>
+            <span className="x-msg-role">{m.role === 'user' ? 'You' : 'Xeref'}</span>
+            <div className="x-msg-text">{m.parts.map(renderPart).join(' ')}</div>
+          </div>
         ))}
         {streamingText && (
-          <p>
-            <strong>assistant:</strong> {streamingText}
-          </p>
+          <div className="x-msg x-msg-assistant">
+            <span className="x-msg-role">Xeref</span>
+            <div className="x-msg-text">{streamingText}</div>
+          </div>
         )}
       </div>
 
       {pendingTool && (
-        <div className="xeref-tool-card">
+        <div className="x-card">
           {pendingTool.toolName === 'propose_edit' ? (
             <p>
-              <strong>propose_edit</strong> wants to edit{' '}
-              <code>{(pendingTool.input as { path?: string }).path}</code> — review the diff opened in the editor.
+              <strong>propose_edit</strong> wants to edit <code>{(pendingTool.input as { path?: string }).path}</code> — review the
+              diff opened in the editor.
             </p>
           ) : (
             <>
@@ -156,17 +208,11 @@ export function App() {
               <pre>{JSON.stringify(pendingTool.input, null, 2)}</pre>
             </>
           )}
-          <div className="xeref-tool-actions">
-            <button
-              className="xeref-connect"
-              onClick={() => postToHost({ type: 'tool.approve', toolCallId: pendingTool.toolCallId })}
-            >
+          <div className="x-actions">
+            <button className="x-btn x-btn-primary" onClick={() => postToHost({ type: 'tool.approve', toolCallId: pendingTool.toolCallId })}>
               Approve
             </button>
-            <button
-              className="xeref-connect xeref-deny"
-              onClick={() => postToHost({ type: 'tool.deny', toolCallId: pendingTool.toolCallId })}
-            >
+            <button className="x-btn" onClick={() => postToHost({ type: 'tool.deny', toolCallId: pendingTool.toolCallId })}>
               Deny
             </button>
           </div>
@@ -174,38 +220,55 @@ export function App() {
       )}
 
       {toolOutcome && (
-        <div className="xeref-tool-card">
-          {toolOutcome.error ? (
-            <p className="xeref-error">{toolOutcome.error}</p>
-          ) : (
-            <pre>{toolOutcome.output}</pre>
-          )}
+        <div className="x-card">
+          {toolOutcome.error ? <p className="x-error">{toolOutcome.error}</p> : <pre>{toolOutcome.output}</pre>}
         </div>
       )}
 
-      {error && <p className="xeref-error">{error}</p>}
+      {error && planBlocked && (
+        <div className="x-card x-card-accent" role="alert">
+          <p>
+            <Icon name="lock" /> {error.message}
+          </p>
+          {auth?.plan !== 'ultra' && (
+            <div className="x-actions">
+              <button className="x-btn x-btn-primary" onClick={() => openSite(account.account?.links.upgrade ?? '/pricing')}>
+                See plans
+              </button>
+              <button className="x-btn" onClick={() => postToHost({ type: 'account.get', force: true })}>
+                I upgraded, refresh
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {error && !planBlocked && (
+        <p className="x-error" role="alert">
+          {error.message}
+        </p>
+      )}
 
-      <select
-        value={model}
-        onChange={(e) => setModel(e.target.value as ModelId)}
-        disabled={busy}
-      >
-        {MODELS.filter((m) => PLAN_RANK[m.minPlan] <= PLAN_RANK[auth?.plan ?? 'free']).map((m) => (
-          <option key={m.id} value={m.id}>{m.label}</option>
-        ))}
-      </select>
+      <div ref={endRef} />
 
-      <textarea
+      <Composer
         value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-        placeholder="Message Xeref… (Shift+Enter for new line)"
-        rows={3}
-        disabled={busy}
+        onChange={setInput}
+        onSend={handleSend}
+        busy={busy}
+        models={allowedModels}
+        model={model}
+        onModelChange={(next) => {
+          userPickedModel.current = true;
+          setModel(next);
+        }}
+        plan={auth?.plan}
+        autoApply={autoApply}
+        onAutoApplyChange={(value) => postToHost({ type: 'config.setAutoApply', value })}
+        fileName={fileName}
+        includeFile={includeFile}
+        onIncludeFileChange={setIncludeFile}
+        onUpgrade={() => openSite(account.account?.links.upgrade ?? '/pricing')}
       />
-      <button className="xeref-connect" onClick={handleSend} disabled={busy}>
-        {busy ? 'Sending…' : 'Send'}
-      </button>
     </div>
   );
 }

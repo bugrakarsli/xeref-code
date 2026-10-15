@@ -61,9 +61,39 @@ export interface DiffProposal {
   summary: { added: number; removed: number };
 }
 
+export type Plan = 'free' | 'pro' | 'ultra';
+
 export interface AuthState {
   connected: boolean;
-  plan?: 'free' | 'pro' | 'ultra';
+  plan?: Plan;
+}
+
+/** Wire shape of GET /api/code/account in the Xeref repo. `null` limit = unlimited. */
+export interface AccountInfo {
+  email: string | null;
+  plan: Plan;
+  /** Model ids this plan may use in Xeref Code (chat-only models already removed). */
+  models: ModelId[];
+  features: { xeref_code: boolean };
+  limits: { deploy_channels: number | null; scheduled_jobs: number | null; dots: number | null };
+  usage: {
+    today: { messages: number; sessions: number };
+    week: { messages: number; sessions: number };
+  };
+  /** Paths relative to the configured endpoint. */
+  links: { manage: string; upgrade: string };
+}
+
+/** Onboarding checklist steps, in display order. */
+export type MilestoneId = 'connect' | 'firstChat' | 'sendSelection' | 'reviewEdit' | 'tryModel';
+
+export interface OnboardingState {
+  done: MilestoneId[];
+  /** Learn card dismissed (or finished). */
+  learnDismissed: boolean;
+  /** Extension version whose What's New card was dismissed. */
+  whatsNewSeen: string | null;
+  version: string;
 }
 
 /** Messages sent from the extension host to a webview. */
@@ -71,21 +101,38 @@ export type HostToWebview =
   | { type: 'session.loaded'; session: CodeSession; messages: ChatMessage[] }
   | { type: 'stream.delta'; text: string }
   | { type: 'stream.done' }
-  | { type: 'chat.error'; message: string }
+  | { type: 'chat.error'; message: string; code?: string }
   | { type: 'diff.proposed'; proposal: DiffProposal }
   | { type: 'auth.state'; state: AuthState }
   | { type: 'tool.requested'; toolCallId: string; toolName: string; input: unknown }
   | { type: 'tool.result'; toolCallId: string; output: unknown }
   | { type: 'tool.error'; toolCallId: string; message: string }
-  | { type: 'input.prefill'; text: string };
+  | { type: 'input.prefill'; text: string }
+  | { type: 'account.loading' }
+  | { type: 'account.data'; account: AccountInfo; fetchedAt: number }
+  | { type: 'account.error'; message: string; code?: string }
+  | { type: 'account.open' }
+  | { type: 'onboarding.state'; state: OnboardingState }
+  | { type: 'editor.context'; fileName: string | null }
+  | { type: 'config.state'; autoApplyEdits: boolean; defaultModel: ModelId }
+  | { type: 'sessions.list'; sessions: CodeSession[]; activeId: string | null; loading: boolean };
 
 /** Messages sent from a webview to the extension host. */
 export type WebviewToHost =
-  | { type: 'chat.send'; text: string; model?: ModelId }
+  | { type: 'chat.send'; text: string; model?: ModelId; includeActiveFile?: boolean }
   | { type: 'session.new' }
   | { type: 'diff.accept'; path: string }
   | { type: 'diff.reject'; path: string }
   | { type: 'command.run'; id: string }
   | { type: 'webview.ready' }
   | { type: 'tool.approve'; toolCallId: string }
-  | { type: 'tool.deny'; toolCallId: string };
+  | { type: 'tool.deny'; toolCallId: string }
+  | { type: 'account.get'; force?: boolean }
+  /** `path` is joined to the configured endpoint by the host; absolute URLs are rejected. */
+  | { type: 'ui.openExternal'; path: string }
+  | { type: 'onboarding.step'; id: MilestoneId }
+  | { type: 'onboarding.dismiss'; what: 'learn' | 'whatsNew' }
+  | { type: 'config.setAutoApply'; value: boolean }
+  | { type: 'session.open'; id: string }
+  | { type: 'session.delete'; id: string }
+  | { type: 'sessions.refresh' };
